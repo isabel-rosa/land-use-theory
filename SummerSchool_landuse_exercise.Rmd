@@ -1,0 +1,246 @@
+---
+title: "General Understading of Land Use Change Models"
+author: "Isabel Rosa"
+date: "27/08/2018"
+output: html_document
+---
+
+```{r }
+
+# load necessary packages
+library(raster)
+library(rgdal)
+
+```
+
+## Goal of the exercise
+Today you will have to create two maps that simulate future forest cover in Santa Catarina. These will be created assuming a neighboorhood influence of already deforested areas, and using two approaches: 
+- one that imposes a pre-determined rate of change
+- one that allows the 'model' to estimate how much deforestation will occur
+These maps will be used both tomorrow and on wednesday to estimate impacts on biodiversity and ecosystem services in this region. 
+
+## Import landscape from GIS demo (Santa Catarina tree cover from Hansen dataset), with only two land use classes (e.g., forest, non-forest)
+Start this exercise by importing the same raster dataset that you used in the GIS tutorial (tree_cover.tif)
+
+```{r }
+
+# read in tree cover raster
+tree_cover<-
+loss<-
+
+# make sure the NA value in both rasters is set to 255
+# missing code here
+
+# convert from tree cover to binary map (1/0) using a simple rule (can vary this rule later)
+# more than 20% is a forest (1), otherwise it's non-forest (0) (out t0 map)
+#Hint: remember that R considers TRUE as 1 and FALSE as 0
+t0_map<-
+
+# plot resulting map
+plot(t0_map, main = "Forest Map in t0")
+
+```
+
+## Simulating single transition change (e.g., from forest to non-forest)
+Firstly, you are going to simulate a single transition, from forest to non-forest. This transition will have a certain probability of occurring, and this probability will vary depending on several factors. To start, it will only depend of how many neighboors of each pixel are already deforested. Then, we will add some layers of complexity to approach a more realistic simulation. 
+
+
+## Create probability surface based on deforested neighboorhood
+
+```{r }
+
+# use focal tool to calculate the amount of deforested neighboors, then divide by window size (n*n)
+# set window size to 5 for now, you can vary it later to assess impact on outcomes
+n<-
+forNeib <- 
+
+# ensure that your highest value corresponds to the pixels where your forest map is 1, i.e. 
+# pixels with value 0 in t0_map should still be 0 in forNeib map
+probDef<-
+
+# visualize map
+plot(probDef, main = "Deforestation probability")
+
+```
+
+
+## Imposing a rate of change (demand-driven) or allowing it to be estimated (data-driven)
+As you've learned in the morning, we'll also simulate when you have a 'demand' module imposing a rate of change (how many pixels change from forest to non-forest) and selecting the highest probability of change
+
+
+```{r }
+
+# DATA-DRIVEN
+# create empty raster the same size and extent as t0 map
+probmap<-
+
+# fill the raster values with random uniform numbers (runif) 
+values(probmap)<-runif(1:ncell(probmap))
+
+# mask areas that we're not interested in and ensure 0 in t0_map is 0 in the prob map
+probmap<-
+
+# if probDef > than the random U(0,1) probability than it is converted, otherwise it is not
+changemap <-  #deforestation map
+
+# plot change map
+plot(changemap, main = "Projected Areas to Change From Forest to Non-Forest")
+
+# resulting forest cover
+# create a new raster called "newForest" based on t0 map
+newForest<-
+# change its values so that where changemap==1, the newForest map == 0
+newForest[]
+  
+# plot forest map in t1
+plot(newForest, main = "Forest Map in t1")
+
+# DEMAND-DRIVEN approach
+# get the number of pixels that lost forest from the loss map
+# get how many 1's you have in the loss tif
+N<-
+
+# now select the highest probability (from probDef) N pixels
+# create data frame with cell ID, probability values and initial forest cover (1/0)
+ID_prob<-data.frame(ID= , ProbDef= , Forest= )
+
+# order the data frame by ascending probability
+sort_ID_prob<-ID_prob[order(          ),]
+
+# convert the Forest value in the first N rows to 0
+sort_ID_prob[       ]<-
+
+# put the dataframe back in the original ID order
+rev_ID_prob<- 
+
+# create newForest raster based on t0_map
+newForest2<- 
+
+# change values for the new Forest values in the dataframe
+# missing code here 
+
+# plot results
+plot(newForest2, main = "Forest Map in t1 (demand)")
+
+# export rasters 
+writeRaster(     )
+
+
+```
+
+
+
+## Exporting data for cSAR exercise tomorrow
+Here you will create a raster that contains the area of tree cover (assuming all cells have the same area, 300 x 300 m),then change the raster resolution to 900 x 900 m, create an ID raster (for visualization) and finally produce a CSV file with the ID and the associated forest area (the inverse, non-forest area) per pixel
+
+
+```{r }
+
+# Finally, change raster resolution to 900 x 900 m and get forest and non-forest area per pixel in a .csv
+# multiply tree cover by 300 x 300 m and get area of forest (1- that will be non-forest), in km2!!
+tree_cover_area_inkm2<- 
+
+# aggregate to 900 x 900 m by summing area in each 300 x 300 m pixels
+forest_area<-aggregate(tree_cover_area_inkm2, fact=    , fun =   )
+
+# creat ID raster (important only if you want to map later the values of cSAR outputs)
+IDmap<-
+values(IDmap)<- 
+
+# create csv with area of forest and no forest, assuming all cells have only forest or no forest
+# hint: the area of non-forest is the area of the cell - area of forest (cells are 81 km2)
+cSAR_data<-data.frame(ID= ,Forest= ,NonForest= )
+
+# clean dataframe of NAs
+cSAR_data<-na.omit(cSAR_data)
+
+# export as CSV without rownames
+write.csv( )
+
+
+### NOW DO THE SAME FOR EACH SCENARIO
+# for your scenarios: multiply binary t1 map (future forest/non-forest) by original tree cover (assuming full conversion)
+future_forest<-tree_cover*newForest
+# repeat for newForest 2 (demand-driven scenario)
+
+# then multiply by area of pixel (300 x 300 m) and convert to km2
+future_forest_area_inkm2<-
+
+# finally aggregate to 900 x 900 m using the sum
+future_forest_area<-aggregate(     , fact=   , fun = )
+
+# create dataframe to export (same as before, assume non-forest as cellarea-forestarea), clean NAs
+cSAR_data<-data.frame(ID=    ,Forest=    ,NonForest=    )
+cSAR_data<-na.omit(cSAR_data)
+
+# make sure to export at least two scenarios: one data-driven and one demand-driven
+write.csv(cSAR_data,"LandUse4cSAR_future_data.csv", row.names = FALSE)
+write.csv(cSAR_data,"LandUse4cSAR_future_demand.csv", row.names = FALSE)
+
+# once you've exported these two you can explore the differences in terms of area that change in each scenario and location of the change as well. ALternatively, you can proceed to create more scenarios. 
+
+```
+
+
+## Explore the 'model' further with more simulations (optional, if you want to have more scenarios)
+In this block of exercises you will build on what you worked before and perform more simulations:
+1) What happens if you vary the forest threshold in the beginning (i.e., tree cover > 40 --> forest)
+2) What happens if you vary the window size to create the deforestation neighboors surface?
+
+```{r }
+# vary 'forest' threshold
+# repeate the above exercises but assuming a stricter value to define a forest
+t0_map<-tree_cover > 40
+plot(t0_map)
+
+# vary window size to see effect on amount and location of deforestation
+# same as above but you vary the window size of the focal statistics function
+forNeib <- focal(t0_map, w=matrix(1,15,15), fun=sum)/(15*15)
+
+## use the code from above, or go a step further and create a function to avoid copying code that does the same thing
+
+```
+
+
+## Ensembling projection to create probability map (optional, demands a bit of R expertise)
+Of course, in the example of estimating the rates of change (data-driven) comparing with a single random uniform map doesn't have much meaning, we need lots of simulations to really determine where it's more likely to occur. Run the exercise above accouting for 100 iterations and average the resulting maps to create the final probability. 
+
+```{r }
+
+# 1) create empty raster to store results
+s<-raster(ncol=ncol(t0_map), nrow=nrow(t0_map), xmx=extent(t0_map)@xmax, xmn=extent(t0_map)@xmin, ymn=extent(t0_map)@ymin, ymx=extent(t0_map)@ymax)
+values(s)<-rep(0,ncell(tree_cover))
+
+# 2) run for N (e.g., 100) iterations and compile new probability map 
+N<-100
+for(i in 1:N){
+  
+  # get a new probability map
+  probmap<-raster(ncol=ncol(t0_map), nrow=nrow(t0_map), xmx=extent(t0_map)@xmax, xmn=extent(t0_map)@xmin, ymn=extent(t0_map)@ymin, ymx=extent(t0_map)@ymax)
+values(probmap)<-runif(1:ncell(probmap))
+  
+  # mask areas that we're not interested in and ensure 0 in t0_map is 0 in the prob map
+  probmap<-mask(probmap,t0_map)
+  probmap<-t0_map*probmap
+  
+  # get new change map (if probDef higher that probmap, then 1; else then 0)
+  changemap <- probDef > probmap #deforestation map
+  
+  # stack it all together
+  s <- stack(s, changemap)
+}
+
+# 4) compile to get final probability
+final_prob<-(sum(s)/N)*100
+
+# 5) plot projected rate of change alongside projected map
+par(mfrow=c(1,2))
+boxplot(cellStats(s, sum)[-1], main = 'Projected Rate of Change')
+plot(final_prob, main = 'Ensembled Probability')
+
+```
+
+
+
+## Real-world model
+Note: in a real-world approch to land use change, you'd have time to study the system, collect information on the variables that impact land use change in the region of interest, and then apply a more robust model to determine the probability of conversion. Further, we focused here on a single transition, whereas in reality you'd have a lot of different land use change possibilities competing, i.e. a conversion of forest can lead to either agricultural lands or pasture lands, for example. Here, the idea was to give a general conceptual framework to the implementation of these models. 
